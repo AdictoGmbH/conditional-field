@@ -1,58 +1,75 @@
 class ConditionalField {
-  constructor(args){
-    this.$control = $(args.control);
+	constructor(args) {
+		this.controls = document.querySelectorAll(args.control);
 
-    if(this.$control.length == 0) return;
+		if (this.controls.length == 0) return;
 
-    this.args = args;
-    this.inputType = this.getInputType();
-    this.setVisible(this.inputValue());
+		this.args = args;
+		this.inputType = this.getInputType();
+		this.setVisible(this.inputValue());
 
-    this.onChangeBound = this.onChange.bind(this);
-    this.$control.on('change', this.onChangeBound);
-  }
+		this.onChangeBound = this.onChange.bind(this);
 
-  onChange(e) {
-    var value = this.inputValue();
-    this.setVisible(value);
-  }
+		Array.prototype.slice.call(this.controls).forEach((control) => {
+			control.addEventListener('change', this.onChangeBound);
+		});
+	}
 
-  setVisible(value) {
-    for(let controlValue in this.args.visibility){
-      if(value == controlValue){
-        $(this.args.visibility[controlValue]).show();
-      }else{
-        $(this.args.visibility[controlValue]).hide();
-      }
-    }
-  }
+	onChange(e) {
+		const value = this.inputValue();
+		this.setVisible(value);
+	}
 
-  getInputType() {
-    if(this.$control.is('select')){
-      return 'select';
-    }else if(this.$control.is(':radio')){
-      return 'radio';
-    }else if(this.$control.is(':checkbox')){
-      return 'checkbox';
-    }
-  }
+	setVisible(value) {
+		for (let controlValue in this.args.visibility) {
+			const targets = document.querySelectorAll(this.args.visibility[controlValue]);
+			[].forEach.call(targets, (t) => {
+				t.style.display = 'none';
+			});
+		}
 
-  inputValue() {
-    let value = '';
-    switch(this.inputType){
-      case 'checkbox':
-        value = this.$control.is(':checked') ? 'on' : 'off';
-        break;
-      case 'radio':
-        value = this.$control.filter(':checked').val();
-        break;
-      default:
-        value = this.$control.val();
-    }
-    return value;
-  }
+		for (let controlValue in this.args.visibility) {
+			if (value == controlValue) {
+				const targets = document.querySelectorAll(this.args.visibility[controlValue]);
+				[].forEach.call(targets, (t) => {
+					t.style.display = 'block';
+				});
+			}
+		}
+	}
 
-  destroy() {
-    this.$control.off('change', this.onChangeBound);
-  }
+	getInputType() {
+		if (this.controls[0].tagName === 'SELECT') {
+			return 'select';
+		} else if (this.controls[0].getAttribute('type') === 'radio') {
+			return 'radio';
+		} else if (this.controls[0].getAttribute('type') === 'checkbox') {
+			return 'checkbox';
+		}
+	}
+
+	inputValue() {
+		let value = '';
+		switch (this.inputType) {
+			case 'checkbox':
+				value = this.controls[0].checked ? 'on' : 'off';
+				break;
+			case 'radio':
+				value = Array.prototype.slice.call(this.controls).filter((control) => {
+					return control.checked
+				}).map((control) => {
+					return control.value
+				});
+				break;
+			default:
+				value = this.controls[0].value;
+		}
+		return value;
+	}
+
+	destroy() {
+		Array.prototype.slice.call(this.controls).forEach((control) => {
+			control.removeEventListener('change', this.onChangeBound);
+		});
+	}
 }
